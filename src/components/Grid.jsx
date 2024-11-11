@@ -15,9 +15,17 @@ const MatrixRain = ({ rows = 15, cols = 20 }) => {
   const [drops, setDrops] = useState([]);
   const [grid, setGrid] = useState(Array(rows).fill().map(() => Array(cols).fill(null)));
 
+  const getRandomColor = () => {
+    const getRandomChannel = () => Math.floor(Math.random() * 156) + 100;
+    const r = getRandomChannel();
+    const g = getRandomChannel();
+    const b = getRandomChannel();
+    return { r, g, b };
+  };
+
   const createDrop = (col) => {
     const length = Math.floor(Math.random() * 4) + 4;
-    const baseColor = Math.random() > 0.5 ? 'purple' : 'blue';
+    const baseColor = getRandomColor();
 
     return {
       col,
@@ -48,7 +56,7 @@ const MatrixRain = ({ rows = 15, cols = 20 }) => {
         return updatedDrops;
       });
 
-      setGrid(prevGrid => {
+      setGrid(() => {
         const newGrid = Array(rows).fill().map(() => Array(cols).fill(null));
 
         drops.forEach(drop => {
@@ -58,10 +66,9 @@ const MatrixRain = ({ rows = 15, cols = 20 }) => {
           for (let i = tailStart; i <= tailEnd; i++) {
             if (i >= 0 && i < rows) {
               const intensity = 1 - (tailEnd - i) / drop.length;
-              const color = drop.baseColor === 'purple' ?
-                `rgb(${Math.floor(128 + intensity * 127)}, 0, ${Math.floor(128 + intensity * 127)})` :
-                `rgb(0, 0, ${Math.floor(128 + intensity * 127)})`;
-              newGrid[i][drop.col] = color;
+              const { r, g, b } = drop.baseColor;
+              const fadeColor = `rgb(${Math.floor(r * intensity)}, ${Math.floor(g * intensity)}, ${Math.floor(b * intensity)})`;
+              newGrid[i][drop.col] = fadeColor;
             }
           }
         });
