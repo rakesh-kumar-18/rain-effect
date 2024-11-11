@@ -1,5 +1,3 @@
-// src/App.js
-
 import MatrixRain from './components/Grid';
 
 function App() {
