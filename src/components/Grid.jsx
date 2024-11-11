@@ -3,85 +3,90 @@ import { useState, useEffect } from 'react';
 
 const RainDrop = ({ color }) => (
   <div
-    className="w-full h-full"
-    style={{ backgroundColor: color }}
+    className="w-6 h-6 border border-gray-700"
+    style={{
+      backgroundColor: color || '#000000',
+      transition: 'background-color 100ms'
+    }}
   />
 );
 
 const MatrixRain = ({ rows = 15, cols = 20 }) => {
-  const [grid, setGrid] = useState([]);
-  const [speed] = useState(100);
+  const [drops, setDrops] = useState([]);
+  const [grid, setGrid] = useState(Array(rows).fill().map(() => Array(cols).fill(null)));
 
-  const getRandomColor = () => {
-    const getRandomChannel = () => Math.floor(Math.random() * 156) + 100;
-    const r = getRandomChannel();
-    const g = getRandomChannel();
-    const b = getRandomChannel();
-    return `rgb(${r}, ${g}, ${b})`;
+  const createDrop = (col) => {
+    const length = Math.floor(Math.random() * 4) + 4;
+    const baseColor = Math.random() > 0.5 ? 'purple' : 'blue';
+
+    return {
+      col,
+      length,
+      head: 0,
+      baseColor,
+      active: true
+    };
   };
 
   useEffect(() => {
-    const initialGrid = Array(rows).fill().map(() =>
-      Array(cols).fill(null)
-    );
-    setGrid(initialGrid);
-  }, [rows, cols]);
-
-  useEffect(() => {
     const interval = setInterval(() => {
-      setGrid(prevGrid => {
-        const newGrid = prevGrid.map(row => [...row]);
+      setDrops(prevDrops => {
+        const updatedDrops = prevDrops
+          .map(drop => ({
+            ...drop,
+            head: drop.head + 1
+          }))
+          .filter(drop => drop.head < rows + drop.length);
 
-        for (let i = rows - 1; i >= 0; i--) {
-          for (let j = 0; j < cols; j++) {
-            if (i === rows - 1) {
-              newGrid[i][j] = null;
-            } else if (newGrid[i][j]) {
-              newGrid[i + 1][j] = newGrid[i][j];
-              newGrid[i][j] = null;
+        if (Math.random() < 0.2) {
+          const col = Math.floor(Math.random() * cols);
+          if (!updatedDrops.some(drop => drop.col === col && drop.head < 3)) {
+            updatedDrops.push(createDrop(col));
+          }
+        }
+
+        return updatedDrops;
+      });
+
+      setGrid(prevGrid => {
+        const newGrid = Array(rows).fill().map(() => Array(cols).fill(null));
+
+        drops.forEach(drop => {
+          const tailStart = Math.max(0, drop.head - drop.length);
+          const tailEnd = Math.min(rows - 1, drop.head);
+
+          for (let i = tailStart; i <= tailEnd; i++) {
+            if (i >= 0 && i < rows) {
+              const intensity = 1 - (tailEnd - i) / drop.length;
+              const color = drop.baseColor === 'purple' ?
+                `rgb(${Math.floor(128 + intensity * 127)}, 0, ${Math.floor(128 + intensity * 127)})` :
+                `rgb(0, 0, ${Math.floor(128 + intensity * 127)})`;
+              newGrid[i][drop.col] = color;
             }
           }
-        }
-
-        for (let j = 0; j < cols; j++) {
-          if (Math.random() < 0.15) {
-            newGrid[0][j] = getRandomColor();
-          }
-        }
+        });
 
         return newGrid;
       });
-    }, speed);
+    }, 100);
 
     return () => clearInterval(interval);
-  }, [rows, cols, speed]);
+  }, [rows, cols, drops]);
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6 flex flex-col items-center justify-center">
-      <div className="bg-black/90 p-4 rounded-lg shadow-2xl border-2 border-gray-600 max-w-3xl w-full">
-        <h1 className="text-xl font-bold mb-4 text-center text-gray-300">Digital Rain</h1>
-
+    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center">
+      <h1 className="text-3xl font-bold text-white mb-8">Digital Rain</h1>
+      <div className="inline-block bg-black p-1">
         <div
-          className="grid rounded-lg"
+          className="grid"
           style={{
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 1fr)`,
-            aspectRatio: `${cols} / ${rows}`,
-            gap: '2px',
-            padding: '2px',
-            backgroundColor: '#333'
+            gridTemplateColumns: `repeat(${cols}, 24px)`,
+            gridTemplateRows: `repeat(${rows}, 24px)`,
           }}
         >
           {grid.map((row, i) =>
             row.map((color, j) => (
-              <div
-                key={`${i}-${j}`}
-                className="w-full pb-[100%] relative bg-black"
-              >
-                <div className="absolute inset-0">
-                  <RainDrop color={color || 'rgba(0, 0, 0, 1)'} />
-                </div>
-              </div>
+              <RainDrop key={`${i}-${j}`} color={color} />
             ))
           )}
         </div>
